@@ -81,3 +81,4 @@ class Dashboard:
         self.layout["status"].update(Panel(status_text, title="Status"))
         
         return self.layout
+
