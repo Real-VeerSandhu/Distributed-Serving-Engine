@@ -1,9 +1,7 @@
-import sqlite3
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Optional, Dict, Tuple
+from typing import Any, Optional
 
 
 @dataclass
@@ -16,94 +14,29 @@ class CacheEntry:
 
 class KVStore:
     """
-    In-memory key-value store with LRU eviction and optional SQLite persistence.
+    In-memory key-value store with LRU eviction.
     
     Features:
     - LRU (Least Recently Used) eviction when max_size is reached
     - TTL (Time To Live) support for cache entries
-    - Optional SQLite persistence for warm restarts
     - Thread-safe operations
     """
     
-    def __init__(self, max_size: int = 1000, persist_path: Optional[str] = None):
+    def __init__(self, max_size: int = 1000):
         """
         Initialize the KVStore.
         
         Args:
             max_size: Maximum number of items to store before evicting the least recently used
-            persist_path: If provided, enables SQLite persistence at the given path
         """
         self.max_size = max_size
         self.cache: OrderedDict[str, CacheEntry] = OrderedDict()
-        self.persist_path = persist_path
-        self.conn = None
-        
-        if self.persist_path:
-            self._init_db()
-            self._load_from_db()
-    
-    def _init_db(self) -> None:
-        """Initialize the SQLite database for persistence."""
-        self.conn = sqlite3.connect(self.persist_path)
-        cursor = self.conn.cursor()
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS kv_store (
-            key TEXT PRIMARY KEY,
-            value BLOB,
-            created_at REAL,
-            ttl REAL
-        )
-        ''')
-        self.conn.commit()
-    
-    def _load_from_db(self) -> None:
-        """Load entries from SQLite database into memory."""
-        if not self.conn:
-            return
-            
-        cursor = self.conn.cursor()
-        cursor.execute('SELECT key, value, created_at, ttl FROM kv_store')
-        
-        now = time.time()
-        for key, value, created_at, ttl in cursor.fetchall():
-            # Skip expired entries
-            if ttl and (now - created_at) > ttl:
-                self._delete_from_db(key)
-                continue
-                
-            self.cache[key] = CacheEntry(
-                value=self._deserialize(value),
-                created_at=created_at,
-                ttl=ttl
-            )
-    
-    def _save_to_db(self, key: str, entry: CacheEntry) -> None:
-        """Save an entry to the SQLite database."""
-        if not self.conn:
-            return
-            
-        cursor = self.conn.cursor()
-        cursor.execute(
-            'REPLACE INTO kv_store (key, value, created_at, ttl) VALUES (?, ?, ?, ?)',
-            (key, self._serialize(entry.value), entry.created_at, entry.ttl)
-        )
-        self.conn.commit()
-    
-    def _delete_from_db(self, key: str) -> None:
-        """Delete an entry from the SQLite database."""
-        if not self.conn:
-            return
-            
-        cursor = self.conn.cursor()
-        cursor.execute('DELETE FROM kv_store WHERE key = ?', (key,))
-        self.conn.commit()
     
     def _evict_if_needed(self) -> None:
         """Evict the least recently used item if we've reached max size."""
         if len(self.cache) >= self.max_size:
             # Remove the first item (least recently used)
-            key, _ = self.cache.popitem(last=False)
-            self._delete_from_db(key)
+            self.cache.popitem(last=False) # LRU eviction
     
     def _get_current_time(self) -> float:
         """Get current time in seconds since epoch."""
@@ -148,9 +81,6 @@ class KVStore:
         # Update the cache
         self.cache[key] = entry
         self.cache.move_to_end(key)  # Mark as recently used
-        
-        # Persist if needed
-        self._save_to_db(key, entry)
     
     def get(self, key: str, default: Any = None) -> Any:
         """
@@ -189,7 +119,6 @@ class KVStore:
         """
         if key in self.cache:
             del self.cache[key]
-            self._delete_from_db(key)
             return True
         return False
     
@@ -216,16 +145,10 @@ class KVStore:
     def clear(self) -> None:
         """Clear all entries from the store."""
         self.cache.clear()
-        if self.conn:
-            cursor = self.conn.cursor()
-            cursor.execute('DELETE FROM kv_store')
-            self.conn.commit()
     
     def close(self) -> None:
         """Close the store and release resources."""
-        if self.conn:
-            self.conn.close()
-            self.conn = None
+        self.clear()
     
     def __contains__(self, key: str) -> bool:
         """Check if a key exists and is not expired."""
@@ -255,7 +178,7 @@ class KVStore:
             if self._is_expired(entry)
         ]
         for key in expired_keys:
-            self.delete(key)
+            del self.cache[key]
             
         return len(self.cache)
     
@@ -268,16 +191,15 @@ class KVStore:
         self.close()
 
 
-def create_kv_store(max_size: int = 1000, persist: bool = False) -> KVStore:
+def create_kv_store(max_size: int = 1000) -> KVStore:
     """
-    Create a new KVStore instance with optional persistence.
+    Create a new KVStore instance.
     
     Args:
         max_size: Maximum number of items to store
-        persist: If True, enables SQLite persistence with a default path
         
     Returns:
         A new KVStore instance
     """
-    persist_path = 'kvstore.db' if persist else None
-    return KVStore(max_size=max_size, persist_path=persist_path)
+    return KVStore(max_size=max_size)
+    
