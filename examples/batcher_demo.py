@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.batcher import Batcher
 
 
+
 async def mock_batch_inference(model_name: str, version: str, inputs: list) -> list:
     await asyncio.sleep(0.1)
     

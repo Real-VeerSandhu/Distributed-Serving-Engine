@@ -2,7 +2,7 @@
 
 This project is a lightweight, vanilla-Python prototype showing patterns and building blocks for distributed AI inference: KV cache management, disaggregated inference, batching, sharding, and runtime optimizations.
 
----
+--
 
 ## Project overview
 
