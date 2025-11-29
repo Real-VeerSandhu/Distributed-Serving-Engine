@@ -1,6 +1,6 @@
 # Distributed Inference Engine
 
-> Lightweight, vanilla-Python prototype showing patterns and building blocks for distributed AI inference: KV cache management, disaggregated inference, batching, sharding, and runtime optimizations.
+This project is a lightweight, vanilla-Python prototype showing patterns and building blocks for distributed AI inference: KV cache management, disaggregated inference, batching, sharding, and runtime optimizations.
 
 ---
 
@@ -8,35 +8,18 @@
 
 **Goal.** Provide a small, well-documented reference implementation (no heavy dependencies) of a distributed inference engine. It demonstrates architectural patterns and optimizations you can use to scale model inference across machines/processes while keeping the core orchestration and tooling in plain Python.
 
-**Audience.** Engineers and researchers who want a clear, minimal, educational system that can be extended to production by swapping in fast inference backends (PyTorch, TensorFlow, ONNX Runtime, Triton, etc.).
+**Audience.** Developers who want a clear, minimal, educational system that can be extended to production by swapping in fast inference backends (PyTorch, TensorFlow, ONNX Runtime, Triton, etc.).
 
 
 ## High-level features (showcased)
 
 - **Coordinator / Orchestrator** — receives inference requests, performs routing, model selection, and scheduling.
 - **Worker nodes** — run model sessions and handle batched inference. Each worker exposes a simple RPC API (TCP sockets / asyncio) implemented with stdlib.
-- **KV cache management** — shared request/response cache with LRU eviction; optional persistence via `sqlite3`.
+- **KV cache management** — shared request/response cache with LRU eviction; optional persistence
 - **Disaggregated inference** — separate processes for model serving and for pre/post-processing to demonstrate vertical split of concerns.
 - **Sharding & routing** — split model or requests across workers (simple hash-based sharding), plus fallback routing.
 - **Batching & coalescing** — combine compatible queries into larger batches to improve throughput.
 - **Lightweight telemetry** — request tracing and basic metrics (latency, throughput) using stdlib `time` and logging.
-
-
-## Architecture diagram (conceptual)
-
-Coordinator (accepts requests) -> Router -> KV Cache -> Batcher -> Worker Pool (multiple worker processes / machines)
-
-Workers: Preprocessor -> Model Inference -> Postprocessor
-
-KV Cache and Model Registry are accessible by coordinator and workers.
-
-
-## Why "vanilla" Python?
-
-This repo focuses on architecture and control-plane logic in plain Python so you can:
-- Understand distributed patterns without the noise of complex frameworks
-- Replace components later with high-performance alternatives
-- Learn core trade-offs (consistency, latency vs throughput, caching)
 
 
 ## Folder layout (shell)
@@ -91,13 +74,12 @@ distributed-inference-engine/
 
 ### worker.py
 - Loads model artifacts (mocked in vanilla prototype).
-- Implements `serve()` method exposing a simple request handler (asyncio TCP or UNIX socket).
 - Runs preproc -> infer -> postproc pipeline.
 - Can register with coordinator (simple registration handshake).
 
 ### kvstore.py
 - In-memory dict + doubly linked list for LRU eviction.
-- TTL support per entry and optional persistence using `sqlite3` for warm restart.
+- TTL support per entry and optional persistence.
 - API: `get(key)`, `set(key, value, ttl=None)`, `delete(key)`, `exists(key)`.
 
 ### model_registry.py
@@ -121,39 +103,6 @@ distributed-inference-engine/
 - **Fault tolerance:** coordinator retries on worker failures; consider adding a replicated model registry or leader election for production.
 
 
-## Optimizations demonstrated
-
-- **KV cache (result caching):** Cache results for repeated inputs (e.g., repeated prompts). Use LRU + TTL. Optional persistent cache via `sqlite3` for warm restarts.
-- **Request coalescing & batching:** group similar requests to amortize model compute.
-- **Disaggregated pipeline:** separate pre/post-processing from the actual model worker so GPU workers focus on model compute.
-- **Sharded model serving:** split model across workers (conceptual) — e.g., tensor slices or layer-based partitioning. In prototype, show sharded routing and reassembly steps.
-- **Adaptive batching:** dynamically adjust batch size based on current latency and queue depth.
-- **Lightweight compression:** compress batched payloads with `zlib` for network-efficient transfer.
-- **Zero-copy / memory mapping:** show optional pathway using `mmap` for large shared tensors between processes.
-
-
-## Example API (shell)
-
-```python
-# example_client.py (sketch)
-from socket import socket, AF_INET, SOCK_STREAM
-import pickle
-
-def send_request(input_text, model_name="default"):
-    msg = {"model": model_name, "input": input_text}
-    b = pickle.dumps(msg)
-    s = socket(AF_INET, SOCK_STREAM)
-    s.connect(("127.0.0.1", 9000))
-    s.send(len(b).to_bytes(8, "big") + b)
-    # read response length + payload
-    L = int.from_bytes(s.recv(8), "big")
-    payload = s.recv(L)
-    resp = pickle.loads(payload)
-    s.close()
-    return resp
-```
-
-
 ## Development / run instructions (shell)
 
 1. Clone the repo
@@ -175,8 +124,4 @@ def send_request(input_text, model_name="default"):
 - Replace coordinator with leader-election for HA using `multiprocessing`-based consensus or `etcd`.
 - Add adaptive routing that moves "hot" models to fewer workers for better cache locality.
 - Integrate GPU-aware scheduling and resource accounting.
-
-
-
-
 
