@@ -225,6 +225,9 @@ class LoadBalancer:
             for wid in self.workers
         }
     
+    def __repr__(self) -> str:
+        return f"LoadBalancer(workers={self.workers})"
+    
     async def _round_robin(self, worker_ids: List[str]) -> str:
         """Round-robin worker selection strategy.
         
