@@ -15,6 +15,7 @@ This project is a lightweight, vanilla-Python prototype showing patterns and bui
 
 - **Coordinator / Orchestrator** — receives inference requests, performs routing, model selection, and scheduling.
 - **Worker nodes** — run model sessions and handle batched inference. Each worker exposes a simple RPC API (TCP sockets / asyncio) implemented with stdlib.
+- **Load Balancer** — distributes requests across worker nodes using configurable strategies (round-robin, least connections, etc.) and monitors worker health.
 - **KV cache management** — shared request/response cache with LRU eviction; optional persistence
 - **Disaggregated inference** — separate processes for model serving and for pre/post-processing to demonstrate vertical split of concerns.
 - **Sharding & routing** — split model or requests across workers (simple hash-based sharding), plus fallback routing.
@@ -30,6 +31,7 @@ distributed-inference-engine/
 ├── src/
 │   ├── coordinator.py       # main API server + scheduler
 │   ├── router.py            # routing + sharding logic
+│   ├── load_balancer.py     # worker load balancing and health monitoring
 │   ├── batcher.py           # request coalescing and batching
 │   ├── worker.py            # worker process that loads model and serves requests
 │   ├── kvstore.py           # in-memory KV cache with LRU + optional sqlite persistence
@@ -65,7 +67,17 @@ distributed-inference-engine/
 ### router.py
 - Implements model-to-worker mapping.
 - Hash-based sharding: e.g., `shard = hash(request.key) % N`.
-- Handles worker health checks and failover.
+- Handles model/shard routing and failover.
+
+### load_balancer.py
+- Distributes requests across worker nodes using configurable strategies:
+  - Round-robin
+  - Least connections
+  - Random
+  - Least latency
+- Monitors worker health with configurable timeouts and failure thresholds
+- Tracks performance metrics (latency, error rates, etc.)
+- Supports dynamic worker registration/deregistration
 
 ### batcher.py
 - Buffers requests per target-model.
@@ -98,9 +110,11 @@ distributed-inference-engine/
 ## Design choices & tradeoffs
 
 - **Batching vs latency:** larger batches increase throughput but increase tail latency. Make batching policy configurable per-model.
+- **Load balancing strategies:** different strategies (round-robin, least connections, etc.) offer tradeoffs between simplicity and optimal resource utilization.
+- **Health checking:** aggressive health checking detects failures quickly but adds overhead; balance based on system requirements.
 - **Consistency:** KV cache is eventually consistent across nodes in this prototype. For stronger consistency, replace with a consensus-backed store.
 - **Sharding:** simple hash sharding is easy but uneven; consistent hashing or range sharding can be added later.
-- **Fault tolerance:** coordinator retries on worker failures; consider adding a replicated model registry or leader election for production.
+- **Fault tolerance:** load balancer automatically removes unhealthy workers; coordinator retries on worker failures; consider adding a replicated model registry or leader election for production.
 
 
 ## Development / run instructions (shell)
@@ -119,9 +133,24 @@ distributed-inference-engine/
 
 ## Extension ideas (future work)
 
-- Integrate with real inference frameworks (PyTorch/TensorFlow/ONNX) — keep orchestration code unchanged.
-- Add secure channels (TLS) for RPC.
-- Replace coordinator with leader-election for HA using `multiprocessing`-based consensus or `etcd`.
-- Add adaptive routing that moves "hot" models to fewer workers for better cache locality.
-- Integrate GPU-aware scheduling and resource accounting.
+- **Advanced load balancing:**
+  - Weighted load balancing based on worker capabilities
+  - Locality-aware request routing
+  - Predictive autoscaling based on traffic patterns
+- **Enhanced monitoring:**
+  - Real-time dashboard for system metrics
+  - Anomaly detection for performance issues
+  - Distributed tracing across components
+- **Integration:**
+  - Add support for real inference frameworks (PyTorch/TensorFlow/ONNX)
+  - Secure channels (TLS) for RPC
+  - Service mesh integration (e.g., Istio, Linkerd)
+- **High availability:**
+  - Leader election for coordinator using `multiprocessing`-based consensus or `etcd`
+  - Multi-region deployment support
+  - Stateful failover for in-flight requests
+- **Optimizations:**
+  - Adaptive routing for "hot" models
+  - GPU-aware scheduling and resource accounting
+  - Request prioritization and preemption
 
