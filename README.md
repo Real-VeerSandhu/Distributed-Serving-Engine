@@ -2,16 +2,7 @@
 
 This project is a lightweight, vanilla-Python prototype showing patterns and building blocks for distributed AI inference: KV cache management, disaggregated inference, batching, sharding, and runtime optimizations.
 
---
-
-## Project overview
-
-**Goal.** Provide a small, well-documented reference implementation (no heavy dependencies) of a distributed inference engine. It demonstrates architectural patterns and optimizations you can use to scale model inference across machines/processes while keeping the core orchestration and tooling in plain Python.
-
-**Audience.** Developers who want a clear, minimal, educational system that can be extended to production by swapping in fast inference backends (PyTorch, TensorFlow, ONNX Runtime, Triton, etc.).
-
-
-## High-level features (showcased)
+## High-level Features
 
 - **Coordinator / Orchestrator** — receives inference requests, performs routing, model selection, and scheduling.
 - **Worker nodes** — run model sessions and handle batched inference. Each worker exposes a simple RPC API (TCP sockets / asyncio) implemented with stdlib.
@@ -23,7 +14,7 @@ This project is a lightweight, vanilla-Python prototype showing patterns and bui
 - **Lightweight telemetry** — request tracing and basic metrics (latency, throughput) using stdlib `time` and logging.
 
 
-## Folder layout (shell)
+## Folder Layout
 
 ```
 distributed-inference-engine/
