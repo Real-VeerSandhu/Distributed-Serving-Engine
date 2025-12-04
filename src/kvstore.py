@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from collections import OrderedDict
 
 T = TypeVar('T')
+ST = TypeVar('ST')
 
 @dataclass
 class CacheEntry(Generic[T]):
