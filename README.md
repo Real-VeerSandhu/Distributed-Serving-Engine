@@ -1,6 +1,6 @@
 # Distributed Inference Engine
 
-This project is a lightweight, vanilla-Python prototype showing patterns and building blocks for distributed AI inference: KV cache management, disaggregated inference, batching, sharding, and runtime optimizations.
+A vanilla-Python prototype showing patterns and building blocks for distributed AI inference (including KV cache management, disaggregated inference, batching, sharding, and runtime optimizations)
 
 ## High-level Features
 
@@ -47,7 +47,7 @@ distributed-inference-engine/
 - For real model inference, plug in PyTorch/TF/ONNX; the orchestration still uses vanilla Python.
 
 
-## Components (detailed shell)
+## Components / Modules
 
 ### coordinator.py
 - Starts an asyncio TCP server (or HTTP endpoint) to accept inference requests.
@@ -97,18 +97,7 @@ distributed-inference-engine/
 - Serialization helpers: `serialize(obj)`, `deserialize(bytes)` using `pickle` + length-prefixed frames.
 - Simple tracer for request IDs and timings.
 
-
-## Design choices & tradeoffs
-
-- **Batching vs latency:** larger batches increase throughput but increase tail latency. Make batching policy configurable per-model.
-- **Load balancing strategies:** different strategies (round-robin, least connections, etc.) offer tradeoffs between simplicity and optimal resource utilization.
-- **Health checking:** aggressive health checking detects failures quickly but adds overhead; balance based on system requirements.
-- **Consistency:** KV cache is eventually consistent across nodes in this prototype. For stronger consistency, replace with a consensus-backed store.
-- **Sharding:** simple hash sharding is easy but uneven; consistent hashing or range sharding can be added later.
-- **Fault tolerance:** load balancer automatically removes unhealthy workers; coordinator retries on worker failures; consider adding a replicated model registry or leader election for production.
-
-
-## Development / run instructions (shell)
+## Run instructions (shell)
 
 1. Clone the repo
 2. `python -m venv .venv && source .venv/bin/activate`
@@ -122,26 +111,4 @@ distributed-inference-engine/
 - `tests/test_basic_flow.py` should spin up an in-process coordinator and worker (using `multiprocessing`) and assert request->response flow and KV cache hits.
 
 
-## Extension ideas (future work)
-
-- **Advanced load balancing:**
-  - Weighted load balancing based on worker capabilities
-  - Locality-aware request routing
-  - Predictive autoscaling based on traffic patterns
-- **Enhanced monitoring:**
-  - Real-time dashboard for system metrics
-  - Anomaly detection for performance issues
-  - Distributed tracing across components
-- **Integration:**
-  - Add support for real inference frameworks (PyTorch/TensorFlow/ONNX)
-  - Secure channels (TLS) for RPC
-  - Service mesh integration (e.g., Istio, Linkerd)
-- **High availability:**
-  - Leader election for coordinator using `multiprocessing`-based consensus or `etcd`
-  - Multi-region deployment support
-  - Stateful failover for in-flight requests
-- **Optimizations:**
-  - Adaptive routing for "hot" models
-  - GPU-aware scheduling and resource accounting
-  - Request prioritization and preemption
 
