@@ -21,22 +21,22 @@ A vanilla-Python prototype showing patterns and building blocks for distributed 
 ## Folder Layout
 
 ```
-distributed-inference-engine/
-├── README.md                # this file
+distributed-serving-engine/
+├── README.md
 ├── src/
-│   ├── coordinator.py       # main API server + scheduler
-│   ├── router.py            # routing + sharding logic
-│   ├── load_balancer.py     # worker load balancing and health monitoring
-│   ├── batcher.py           # request coalescing and batching
-│   ├── worker.py            # worker process that loads model and serves requests
-│   ├── kvstore.py           # in-memory KV cache with LRU + optional sqlite persistence
-│   ├── model_registry.py    # registry for model metadata, endpoints and shards
-│   ├── preproc.py           # example pre-processing utilities
-│   ├── postproc.py          # example post-processing utilities
-│   └── utils.py             # helpers: serialization, tracing, metrics
+│   ├── coordinator.py
+│   ├── router.py
+│   ├── load_balancer.py
+│   ├── batcher.py
+│   ├── worker.py
+│   ├── kvstore.py
+│   ├── model_registry.py
+│   ├── preproc.py
+│   ├── postproc.py
+│   └── utils.py
 ├── examples/
-│   ├── example_client.py    # simple client that sends requests
-│   └── demo_config.yaml     # sample configuration
+│   ├── example_client.py
+│   └── demo_config.yaml
 ├── tests/
 │   └── test_basic_flow.py
 ├── docs/
@@ -107,9 +107,5 @@ distributed-inference-engine/
 2. `python -m venv .venv && source .venv/bin/activate`
 3. Start one or more workers: `python src/worker.py --port 9001 --model default`
 4. Start coordinator: `python src/coordinator.py --listen-port 9000 --worker 127.0.0.1:9001`
-5. Try the example client: `python examples/example_client.py`
+5. Try the examples : `python examples/*.py`
 
-
-## Testing & validation
-
-- `tests/test_basic_flow.py` should spin up an in-process coordinator and worker (using `multiprocessing`) and assert request->response flow and KV cache hits.
