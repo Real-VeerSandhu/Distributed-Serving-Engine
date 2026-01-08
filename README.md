@@ -1,3 +1,7 @@
+```diff
+-Working in progress
+```
+
 # Distributed Serving Engine
 
 A vanilla-Python prototype showing patterns and building blocks for distributed AI serving (including KV cache management, disaggregated inference, batching, sharding, and runtime optimizations)
